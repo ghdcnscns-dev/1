@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>죄악의 카니발 - 점수 계산기 (Mobile Optimized)</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #120914;          
+            --card-bg: #1e1124;          
+            --card-border: #3d2147;      
+            --accent-color: #e63946;     
+            --accent-glow: rgba(230, 57, 70, 0.25);
+            --text-main: #f8f9fa;        
+            --text-sub: #b19db6;         
+            --button-bg: #291831;        
+            --input-bg: #150a1b;         
+            --danger-bg: #3a1a1a;
+            --danger-border: #753333;
+        }
+
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; 
+            -webkit-tap-highlight-color: transparent; 
+            -webkit-touch-callout: none;
+        }
+
+        body { 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            display: flex; 
+            flex-direction: column; 
+            min-height: 100vh; 
+            align-items: center; 
+            padding: 12px; 
+            padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 12px);
+        }
+
+        .container { 
+            width: 100%; 
+            max-width: 480px; 
+            display: flex; 
+            flex-direction: column; 
+            flex: 1; 
+        }
+        
+        header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 16px; 
+            padding-bottom: 12px; 
+            border-bottom: 1px solid var(--card-border); 
+        }
+        .header-title-area { display: flex; flex-direction: column; gap: 2px; }
+        .header-title { color: var(--text-main); font-size: 17px; font-weight: 800; letter-spacing: -0.5px; }
+        .header-subtitle { color: var(--accent-color); font-size: 10px; font-weight: 600; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px; }
+        .header-buttons { display: flex; gap: 8px; }
+        .btn-top-header { background-color: var(--button-bg); color: var(--accent-color); border: 1px solid var(--card-border); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+        .btn-top-header:active { transform: scale(0.95); background-color: #4a2757; }
+        .btn-top-danger { background-color: var(--danger-bg); color: #ffadad; border-color: var(--danger-border); }
+        
+        .progress-section { margin-bottom: 16px; }
+        .progress-info-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .step-badge { background: var(--button-bg); border: 1px solid var(--card-border); color: var(--accent-color); padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+        .progress-bar-container { width: 100%; background-color: var(--input-bg); height: 6px; border-radius: 3px; border: 1px solid var(--card-border); overflow: hidden; }
+        .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #9b1d25, var(--accent-color)); width: 0%; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        .section-box { background-color: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 16px; margin-bottom: 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
+        .section-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .section-title { font-size: 15px; font-weight: 800; color: var(--accent-color); letter-spacing: -0.3px; }
+        .section-desc { font-size: 12px; color: var(--text-sub); margin-bottom: 14px; line-height: 1.4; white-space: pre-line; }
+
+        .player-count-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }
+        .pc-btn { background-color: var(--button-bg); border: 1px solid var(--card-border); color: var(--text-main); padding: 12px 0; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.15s; }
+        .pc-btn.active { background-color: #4a151b; border-color: var(--accent-color); color: var(--accent-color); box-shadow: 0 0 8px var(--accent-glow); }
+        .pc-btn:active { transform: scale(0.96); }
+        
+        .config-row { display: flex; align-items: center; background-color: var(--input-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; gap: 10px; }
+        .config-input-wrapper { display: flex; align-items: center; background: var(--button-bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 6px 10px; flex: 1; }
+        .config-input { flex: 1; background: transparent; border: none; color: var(--text-main); font-size: 16px; font-weight: 600; outline: none; width: 100%; }
+
+        .btn-primary { width: 100%; background: linear-gradient(135deg, #b81d27, var(--accent-color)); border: 1px solid #ff6b75; color: #fff; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; text-align: center; margin-top: 10px; box-shadow: 0 4px 12px rgba(230, 57, 70, 0.3); transition: all 0.15s; }
+        .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
+        .btn-edit-mode { background: linear-gradient(135deg, #2c1638, #48225c); border-color: #6a3785; color: #d4a3ef; }
+
+        /* 선 플레이어 알림 배너 */
+        .fp-banner {
+            background: linear-gradient(135deg, #2b1136, #4b1b54);
+            border: 1px solid #d500f9;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 800;
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 14px;
+            box-shadow: 0 4px 12px rgba(213, 0, 249, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+        .fp-icon { font-size: 18px; }
+
+        .bonus-config-box { display: flex; align-items: center; justify-content: space-between; background: var(--input-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
+        .bonus-label { font-size: 13px; font-weight: 700; color: var(--accent-color); }
+        .bonus-input { background: var(--button-bg); border: 1px solid var(--card-border); color: var(--accent-color); width: 64px; height: 36px; text-align: center; font-size: 16px; font-weight: 800; border-radius: 8px; outline: none; }
+
+        .player-score-card { background-color: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 6px rgba(0,0,0,0.2); transition: border-color 0.15s; }
+        .player-score-card:focus-within { border-color: var(--accent-color); }
+        
+        .player-info-area { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .player-card-name { font-size: 14px; font-weight: 700; color: var(--text-main); }
+        
+        .pride-btn {
+            background: var(--button-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-sub);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .pride-btn.active {
+            background: #4a154b;
+            border-color: #d500f9;
+            color: #f3e5f5;
+            box-shadow: 0 0 8px rgba(213,0,249,0.4);
+        }
+
+        .lowest-badge { background-color: #591922; color: #ff99a1; border: 1px solid var(--accent-color); font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 700; display: none; }
+        .player-score-card.is-lowest .lowest-badge { display: inline-block; }
+
+        .stepper-controls { display: flex; align-items: center; gap: 6px; }
+        .step-btn { background-color: var(--button-bg); border: 1px solid var(--card-border); color: var(--text-main); width: 38px; height: 38px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.1s; flex-shrink: 0; }
+        .step-btn:active { background-color: #522b5c; transform: scale(0.92); }
+        
+        .score-input { background-color: var(--input-bg); border: 1px solid var(--card-border); color: var(--text-main); width: 64px; height: 38px; text-align: center; font-size: 16px; font-weight: 800; border-radius: 8px; outline: none; transition: border-color 0.15s; }
+        .score-input:focus { border-color: var(--accent-color); }
+
+        .nav-button-group { display: flex; gap: 8px; margin-top: 16px; margin-bottom: 16px; }
+        .btn-secondary { flex: 1; background-color: var(--button-bg); border: 1px solid var(--card-border); color: var(--text-main); padding: 14px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.15s; }
+        .btn-secondary:active { background-color: #4a2757; transform: scale(0.98); }
+        
+        .live-score-bar { background-color: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 10px 14px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-around; font-size: 11px; color: var(--text-sub); margin-bottom: 14px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
+        .live-score-item { display: flex; align-items: center; gap: 4px; }
+        .live-score-item span { color: var(--text-main); font-weight: 800; font-size: 12px; }
+        
+        .winner-card { 
+            background: linear-gradient(135deg, #2b0b14, #1f0b24, #120914); 
+            border: 2px solid var(--accent-color); 
+            border-radius: 16px; 
+            padding: 24px 16px; 
+            text-align: center; 
+            margin-bottom: 16px; 
+            box-shadow: 0 6px 24px rgba(230, 57, 70, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        .winner-icon-container {
+            position: relative;
+            width: 68px;
+            height: 68px;
+            margin: 0 auto 10px auto;
+            background: rgba(230, 57, 70, 0.15);
+            border: 2px solid var(--accent-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
+        .winner-svg { width: 36px; height: 36px; fill: var(--accent-color); }
+        .winner-name-badge { font-size: 22px; font-weight: 800; color: #fff; margin: 6px 0 2px 0; display: inline-flex; align-items: center; gap: 6px; }
+        .winner-score-badge { font-size: 28px; font-weight: 900; color: var(--accent-color); text-shadow: 0 2px 6px rgba(0,0,0,0.6); }
+
+        .ranking-card { background-color: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 14px; margin-bottom: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+        .mvp-section-title { font-size: 13px; font-weight: 800; color: var(--accent-color); margin: 16px 0 8px 4px; letter-spacing: -0.2px; }
+        .mvp-card { background-color: card-bg; border: 1px solid var(--card-border); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.1); background-color: var(--card-bg); }
+        
+        /* 라운드 전환 순위 팝업 모달 스타일 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 4, 12, 0.85);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 16px;
+        }
+        .modal-card {
+            background-color: var(--card-bg);
+            border: 2px solid var(--accent-color);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(230, 57, 70, 0.4);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            animation: modalPopup 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes modalPopup {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .modal-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--accent-color);
+            text-align: center;
+            letter-spacing: -0.3px;
+        }
+        .modal-subtitle {
+            font-size: 12px;
+            color: var(--text-sub);
+            text-align: center;
+            margin-top: -8px;
+        }
+        .modal-ranking-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 260px;
+            overflow-y: auto;
+        }
+
+        .creator-footer { text-align: center; font-size: 11px; color: var(--text-sub); margin-top: 20px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="header-title-area">
+            <span class="header-title">죄악의 카니발</span>
+            <span class="header-subtitle">Carnival of Sins Calculator</span>
+        </div>
+        <div class="header-buttons">
+            <button class="btn-top-header btn-top-danger" onclick="fullResetApp()">초기화</button>
+        </div>
+    </header>
+
+    <!-- 1단계: 설정 화면 -->
+    <div id="setup-screen">
+        <div class="section-box">
+            <div class="section-title">참여 인원 설정</div>
+            <div class="section-desc">참여할 플레이어 수(최대 5명)를 선택하십시오.</div>
+            <div class="player-count-grid" id="player-count-buttons"></div>
+        </div>
+
+        <div class="section-box">
+            <div class="section-title">플레이어 이름</div>
+            <div class="section-desc">참가자의 이름을 지정하세요.</div>
+            <div id="player-config-list"></div>
+        </div>
+
+        <button class="btn-primary" onclick="startCalculator()">카니발 점수 기록 시작</button>
+        
+        <div class="creator-footer">
+            <span style="color:var(--accent-color);">✦</span> 제작자 천상민
+        </div>
+    </div>
+
+    <!-- 2단계: 점수 입력 화면 -->
+    <div id="calculator-screen" class="hidden">
+        <div class="progress-section">
+            <div class="progress-info-row">
+                <span class="step-badge" id="step-counter">ROUND 1 / 7</span>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="progress-bar-fill"></div>
+            </div>
+        </div>
+
+        <!-- 선 플레이어 알림 배너 -->
+        <div id="fp-banner" class="fp-banner">
+            <span class="fp-icon">👑</span> 
+            <div>이번 턴 선 플레이어: <span id="fp-name" style="color:#f3e5f5;">-</span></div>
+        </div>
+
+        <div class="section-box" style="padding: 14px 16px;">
+            <div class="section-title-row">
+                <div id="step-title" class="section-title">라운드 제목</div>
+            </div>
+            <div id="step-desc" class="section-desc" style="margin-bottom: 0;">라운드 설명</div>
+        </div>
+
+        <div class="bonus-config-box">
+            <div class="bonus-label">✨ 보너스</div>
+            <div style="display:flex; align-items:center; gap:6px;">
+                <input type="number" id="round-bonus-value" class="bonus-input" value="0" onchange="updateLiveScoreBar()">
+                <span style="font-size:12px; color:var(--text-sub);">점</span>
+            </div>
+        </div>
+
+        <div class="live-score-bar" id="live-score-bar"></div>
+        <div id="player-score-inputs"></div>
+
+        <div class="nav-button-group">
+            <button class="btn-secondary" onclick="prevStep()">이전 라운드</button>
+            <button class="btn-primary" style="margin-top:0; flex:1.5;" id="next-btn" onclick="nextStep()">다음 라운드</button>
+        </div>
+    </div>
+
+    <!-- 3단계: 결과 화면 -->
+    <div id="result-screen" class="hidden">
+        <div class="winner-card">
+            <div style="font-size: 10px; color: var(--accent-color); margin-bottom: 4px; font-weight:800; letter-spacing: 1.5px;">🎭 카니발의 지배자 🎭</div>
+            
+            <div class="winner-icon-container">
+                <svg class="winner-svg" viewBox="0 0 512 512">
+                    <path d="M256 32c14.2 0 27.3 7.5 34.5 19.8l19.2 32.7c6.1 10.4 17.1 16.9 29.2 17.3l37.8 1.3c16.3 .6 30.6 10.6 36.6 25.6l14.1 35.3c4.7 11.7 15.1 19.9 27.5 21.1l37.3 3.7c16.2 1.6 29.2 13.9 31.9 30.1l4.2 25.4c2 12.2-2.1 24.6-11 33.3l-27.4 26.8c-8.7 8.5-12.4 20.8-10.1 32.7l7.5 37.1c3.2 16-3.2 32.3-16.5 42.1l-29.9 22.1c-10 7.4-15.1 19.9-13.1 32.4l4.9 36.9c2.3 16-7.1 31.1-22.3 36.8l-35.6 13.2c-11.4 4.2-19.8 14-22.3 26l-8.4 36.2c-3.6 15.7-17.6 27-33.8 27H204c-16.2 0-30.2-11.3-33.8-27l-8.4-36.2c-2.5-12-10.9-21.8-22.3-26l-35.6-13.2c-15.2-5.7-24.6-20.8-22.3-36.8l4.9-36.9c2-12.5-3.1-25-13.1-32.4L73.4 384c-13.3-9.8-19.7-26.1-16.5-42.1l7.5-37.1c2.3-11.9-1.4-24.2-10.1-32.7L26.9 245.3c-8.9-8.7-13-21.1-11-33.3l4.2-25.4c2.7-16.2 15.7-28.5 31.9-30.1l37.3-3.7c12.4-1.2 22.8-9.4 27.5-21.1l14.1-35.3c6-15 20.3-25 36.6-25.6l37.8-1.3c12.1-.4 23.1-6.9 29.2-17.3l19.2-32.7C228.7 39.5 241.8 32 256 32z"/>
+                </svg>
+            </div>
+
+            <div class="winner-name-badge" id="winner-name-display">-</div>
+            <div class="winner-score-badge" id="winner-score-display">0점</div>
+            <div style="font-size: 11px; color: var(--text-sub); margin-top: 8px;" id="winner-flavor-text">-</div>
+        </div>
+        
+        <div class="mvp-section-title">🎭 라운드별 카니발 하이라이트</div>
+        <div id="mvp-cards-container"></div>
+
+        <div class="mvp-section-title" style="margin-top: 20px;">📊 최종 순위</div>
+        <div id="ranking-list"></div>
+        
+        <button class="btn-primary btn-edit-mode" onclick="goToEditSteps()" style="margin-top:14px;">점수 항목 다시 수정하기</button>
+        <button class="btn-primary" onclick="resetApp()" style="margin-top: 8px;">새로운 설정으로 시작하기</button>
+    </div>
+</div>
+
+<!-- 라운드 전환 중간 순위 확인 모달 -->
+<div id="round-ranking-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+        <div class="modal-title" id="modal-round-title">ROUND X 중간 순위</div>
+        <div class="modal-subtitle">현재 라운드까지 반영된 누적 점수 순위입니다.</div>
+        <div class="modal-ranking-list" id="modal-ranking-container"></div>
+        <button class="btn-primary" style="margin-top: 4px;" onclick="closeModalAndProceed()">다음 라운드로 이동</button>
+    </div>
+</div>
+
+<script>
+    let playerCount = 4;
+    
+    let steps = [
+        { id: 'round1', title: "1라운드: 가면의 서곡", desc: "첫 번째 가면에 숨겨진 욕망을 펼쳐 점수를 기록하십시오. (개당 1점)", awardName: "서곡의 연출가상", flavor: "화려한 가조와 함께 카니발의 막을 가장 강렬하게 올린 주역!" },
+        { id: 'round2', title: "2라운드: 광기의 무도회", desc: "무도회장에서 펼쳐진 치열한 군무와 연출의 점수를 기록하십시오. (개당 1점)", awardName: "무도회의 광기상", flavor: "환희와 광기가 가득한 무도회장을 완전히 압도한 댄서!" },
+        { id: 'round3', title: "3라운드: 금지된 향락", desc: "어둠 속에서 벌어진 은밀한 축제의 득점을 입력하십시오. (개당 1점)", awardName: "금단의 탐미상", flavor: "규율을 아슬아슬하게 넘나들며 가장 짜릿한 유흥을 즐긴 탐미주의자!" },
+        { id: 'round4', title: "4라운드: 군중의 환호", desc: "군중을 매료시키고 이끌어낸 환호의 점수를 기록하십시오. (개당 1점)", awardName: "군중의 우상상", flavor: "축제에 모인 모든 관중들의 시선과 찬사를 한 몸에 받은 카니발의 스타!" },
+        { id: 'round5', title: "5라운드: 절정의 디오니소스", desc: "축제가 최고조에 달한 순간 획득한 점수를 입력하십시오. (개당 1점)", awardName: "절정의 축제상", flavor: "모든 제약과 이성을 불태우며 축제의 클라이맥스를 장식한 자!" },
+        { id: 'round6', title: "6라운드: 심판의 가면무도", desc: "가면 뒤에 숨겨진 진실이 드러나는 심판의 점수를 기록하십시오. (개당 1점)", awardName: "비밀의 판결상", flavor: "치밀한 계략으로 판도를 뒤집고 심판의 대리인이 된 책략가!" },
+        { id: 'round7', title: "7라운드: 피날레와 심판", desc: "마지막 카니발의 밤을 마무리하며 획득한 최종 점수를 입력하십시오. (개당 1점)", awardName: "파멸의 피날레스상", flavor: "기괴하고도 찬란한 카니발의 대단원을 화려하게 매듭지은 전설!" }
+    ];
+
+    let playerNames = ["참가자 1", "참가자 2", "참가자 3", "참가자 4"];
+    let players = [];
+    let currentStep = 0;
+    
+    let firstPlayerIndex = 0;
+    let firstPlayerHistory = [];
+    let lastPrideClicked = -1;
+
+    window.onload = function() {
+        renderPlayerCountButtons();
+        renderPlayerConfigInputs();
+    };
+
+    function renderPlayerCountButtons() {
+        const container = document.getElementById('player-count-buttons');
+        container.innerHTML = '';
+        for (let i = 2; i <= 5; i++) {
+            const btn = document.createElement('button');
+            btn.className = `pc-btn ${i === playerCount ? 'active' : ''}`;
+            btn.innerText = `${i}명`;
+            btn.onclick = () => {
+                saveConfigInputs();
+                playerCount = i;
+                renderPlayerCountButtons();
+                renderPlayerConfigInputs();
+            };
+            container.appendChild(btn);
+        }
+    }
+
+    function renderPlayerConfigInputs() {
+        saveConfigInputs();
+        const container = document.getElementById('player-config-list');
+        container.innerHTML = '';
+        for (let i = 0; i < playerCount; i++) {
+            if (!playerNames[i]) playerNames[i] = `참가자 ${i + 1}`;
+
+            const row = document.createElement('div');
+            row.className = 'config-row';
+
+            row.innerHTML = `
+                <div class="config-input-wrapper">
+                    <input type="text" class="config-input" id="p-name-${i}" value="${playerNames[i]}" placeholder="플레이어 이름" onfocus="this.select()">
+                </div>
+            `;
+            container.appendChild(row);
+        }
+    }
+
+    function saveConfigInputs() {
+        for (let i = 0; i < playerCount; i++) {
+            const input = document.getElementById(`p-name-${i}`);
+            if (input) playerNames[i] = input.value || `참가자 ${i + 1}`;
+        }
+    }
+
+    function startCalculator() {
+        saveConfigInputs();
+
+        players = [];
+        for (let i = 0; i < playerCount; i++) {
+            players.push({
+                name: playerNames[i],
+                scores: new Array(steps.length).fill(0),
+                bonusEarned: new Array(steps.length).fill(false),
+                pride: new Array(steps.length).fill(false)
+            });
+        }
+        
+        currentStep = 0;
+        lastPrideClicked = -1;
+        
+        firstPlayerIndex = Math.floor(Math.random() * playerCount);
+        firstPlayerHistory = [];
+        firstPlayerHistory[0] = firstPlayerIndex;
+
+        document.getElementById('setup-screen').classList.add('hidden');
+        document.getElementById('calculator-screen').classList.remove('hidden');
+        renderStep();
+    }
+
+    function renderStep() {
+        const progressPercent = ((currentStep + 1) / steps.length) * 100;
+        document.getElementById('progress-bar-fill').style.width = `${progressPercent}%`;
+
+        document.getElementById('step-counter').innerText = `ROUND ${currentStep + 1} / ${steps.length}`;
+        document.getElementById('step-title').innerText = steps[currentStep].title;
+        document.getElementById('step-desc').innerText = steps[currentStep].desc;
+        document.getElementById('next-btn').innerText = (currentStep === steps.length - 1) ? "최종 결과 보기" : "다음 라운드";
+        
+        document.getElementById('fp-name').innerText = players[firstPlayerIndex].name;
+
+        renderScoreInputs();
+        updateLiveScoreBar();
+    }
+
+    function updateLiveScoreBar() {
+        saveCurrentScores();
+        
+        let currentScores = players.map(p => p.scores[currentStep]);
+        let minScore = Math.min(...currentScores);
+
+        players.forEach((p, idx) => {
+            p.isLowestCurrent = (p.scores[currentStep] === minScore);
+        });
+
+        players.forEach((p, idx) => {
+            const card = document.getElementById(`player-card-${idx}`);
+            if (card) {
+                if (p.isLowestCurrent) {
+                    card.classList.add('is-lowest');
+                } else {
+                    card.classList.remove('is-lowest');
+                }
+            }
+        });
+
+        const bar = document.getElementById('live-score-bar');
+        bar.innerHTML = '';
+        let bonusVal = parseInt(document.getElementById('round-bonus-value').value) || 0;
+
+        players.forEach(p => {
+            let calculatedTotal = 0;
+            for(let s = 0; s < currentStep; s++) {
+                calculatedTotal += p.scores[s];
+                let roundScores = players.map(pl => pl.scores[s]);
+                let rMin = Math.min(...roundScores);
+                if (p.scores[s] === rMin) {
+                    calculatedTotal += bonusVal;
+                }
+            }
+
+            const item = document.createElement('div');
+            item.className = 'live-score-item';
+            item.innerHTML = `<span>${p.name}: ${calculatedTotal}점</span>`;
+            bar.appendChild(item);
+        });
+    }
+
+    window.togglePride = function(pIdx) {
+        players[pIdx].pride[currentStep] = !players[pIdx].pride[currentStep];
+        if (players[pIdx].pride[currentStep]) {
+            lastPrideClicked = pIdx;
+        }
+        renderScoreInputs();
+    };
+
+    function renderScoreInputs() {
+        const container = document.getElementById('player-score-inputs');
+        container.innerHTML = '';
+
+        players.forEach((p, index) => {
+            const card = document.createElement('div');
+            card.className = `player-score-card ${p.isLowestCurrent ? 'is-lowest' : ''}`;
+            card.id = `player-card-${index}`;
+
+            const prideActive = p.pride[currentStep] ? 'active' : '';
+
+            card.innerHTML = `
+                <div class="player-info-area">
+                    <div class="player-card-name">${p.name}</div>
+                    <button class="pride-btn ${prideActive}" onclick="togglePride(${index})">교만</button>
+                    <span class="lowest-badge">보너스 대상</span>
+                </div>
+                <div class="stepper-controls">
+                    <button class="step-btn" onclick="adjustScore(${index}, -1)">-</button>
+                    <input type="number" class="score-input" id="score-input-${index}" value="${p.scores[currentStep]}" onfocus="this.select()" onchange="updateScoreValue(${index}, this.value)">
+                    <button class="step-btn" onclick="adjustScore(${index}, 1)">+</button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function adjustScore(pIdx, amt) {
+        players[pIdx].scores[currentStep] = Math.max(0, players[pIdx].scores[currentStep] + amt);
+        document.getElementById(`score-input-${pIdx}`).value = players[pIdx].scores[currentStep];
+        updateLiveScoreBar();
+    }
+
+    function updateScoreValue(pIdx, val) {
+        const num = parseInt(val);
+        players[pIdx].scores[currentStep] = isNaN(num) ? 0 : Math.max(0, num);
+        updateLiveScoreBar();
+    }
+
+    function saveCurrentScores() {
+        players.forEach((p, idx) => {
+            const input = document.getElementById(`score-input-${idx}`);
+            if (input) {
+                p.scores[currentStep] = parseInt(input.value) || 0;
+            }
+        });
+    }
+
+    function processRoundBonuses() {
+        saveCurrentScores();
+        let currentScores = players.map(p => p.scores[currentStep]);
+        let minScore = Math.min(...currentScores);
+
+        players.forEach(p => {
+            p.bonusEarned[currentStep] = (p.scores[currentStep] === minScore);
+        });
+    }
+
+    function calculateNextFP() {
+        let prideIndices = [];
+        players.forEach((p, idx) => {
+            if (p.pride[currentStep]) prideIndices.push(idx);
+        });
+
+        if (prideIndices.length === 1) {
+            firstPlayerIndex = prideIndices[0];
+            return;
+        } else if (prideIndices.length > 1) {
+            if (prideIndices.includes(lastPrideClicked)) {
+                firstPlayerIndex = lastPrideClicked;
+            } else {
+                prideIndices.sort((a, b) => {
+                    let distA = (a - firstPlayerIndex + playerCount) % playerCount;
+                    let distB = (b - firstPlayerIndex + playerCount) % playerCount;
+                    return distB - distA; 
+                });
+                firstPlayerIndex = prideIndices[0];
+            }
+            return;
+        }
+
+        let bonusVal = parseInt(document.getElementById('round-bonus-value').value) || 0;
+        let roundScores = players.map(p => {
+            return p.scores[currentStep] + (p.bonusEarned[currentStep] ? bonusVal : 0);
+        });
+
+        let minScore = Math.min(...roundScores);
+        let lowestIndices = [];
+        roundScores.forEach((score, idx) => {
+            if (score === minScore) lowestIndices.push(idx);
+        });
+
+        if (lowestIndices.length === 1) {
+            firstPlayerIndex = lowestIndices[0];
+        } else {
+            lowestIndices.sort((a, b) => {
+                let distA = (a - firstPlayerIndex + playerCount) % playerCount;
+                let distB = (b - firstPlayerIndex + playerCount) % playerCount;
+                return distB - distA;
+            });
+            firstPlayerIndex = lowestIndices[0];
+        }
+    }
+
+    function prevStep() {
+        saveCurrentScores();
+        if (currentStep > 0) { 
+            currentStep--; 
+            firstPlayerIndex = firstPlayerHistory[currentStep];
+            renderStep(); 
+        } else { 
+            document.getElementById('calculator-screen').classList.add('hidden'); 
+            document.getElementById('setup-screen').classList.remove('hidden'); 
+        }
+    }
+
+    function nextStep() {
+        processRoundBonuses();
+        
+        if (currentStep < steps.length - 1) {
+            // 중간 순위 모달 띄우기
+            showRoundRankingModal();
+        } else { 
+            showResult(); 
+        }
+    }
+
+    function showRoundRankingModal() {
+        let bonusVal = parseInt(document.getElementById('round-bonus-value').value) || 0;
+        
+        // 현재 라운드까지 포함해서 누적 점수 계산
+        let ranked = players.map(p => {
+            let rawSum = 0;
+            let bonusSum = 0;
+            for (let s = 0; s <= currentStep; s++) {
+                rawSum += p.scores[s];
+                if (p.bonusEarned[s]) bonusSum += bonusVal;
+            }
+            let total = rawSum + bonusSum;
+            return { ...p, total, rawSum, bonusSum };
+        });
+
+        ranked.sort((a, b) => b.total - a.total);
+
+        document.getElementById('modal-round-title').innerText = `ROUND ${currentStep + 1} 종료 누적 순위`;
+        const container = document.getElementById('modal-ranking-container');
+        container.innerHTML = '';
+
+        ranked.forEach((p, idx) => {
+            const card = document.createElement('div');
+            card.className = 'ranking-card';
+            card.style.marginBottom = '0px';
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="color:var(--accent-color); font-weight:800; font-size:13px;">${idx + 1}위</span>
+                        <span style="font-weight:700; font-size:12px;">${p.name}</span>
+                    </div>
+                    <span style="color:var(--accent-color); font-weight:800; font-size:13px;">${p.total}점</span>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+
+        document.getElementById('round-ranking-modal').classList.remove('hidden');
+    }
+
+    function closeModalAndProceed() {
+        document.getElementById('round-ranking-modal').classList.add('hidden');
+        
+        calculateNextFP();
+        currentStep++; 
+        firstPlayerHistory[currentStep] = firstPlayerIndex;
+        lastPrideClicked = -1;
+        renderStep();
+    }
+
+    function goToEditSteps() {
+        document.getElementById('result-screen').classList.add('hidden');
+        document.getElementById('calculator-screen').classList.remove('hidden');
+        currentStep = 0;
+        firstPlayerIndex = firstPlayerHistory[0];
+        renderStep();
+    }
+
+    function showResult() {
+        processRoundBonuses();
+        document.getElementById('calculator-screen').classList.add('hidden');
+        document.getElementById('result-screen').classList.remove('hidden');
+        if (typeof confetti === 'function') confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+
+        let bonusVal = parseInt(document.getElementById('round-bonus-value').value) || 0;
+
+        let ranked = players.map(p => {
+            let rawSum = p.scores.reduce((a, b) => a + b, 0);
+            let bonusSum = 0;
+            for (let s = 0; s < steps.length; s++) {
+                if (p.bonusEarned[s]) bonusSum += bonusVal;
+            }
+            let total = rawSum + bonusSum;
+            return { ...p, total, rawSum, bonusSum };
+        });
+
+        ranked.sort((a, b) => b.total - a.total);
+        
+        const winnerNameEl = document.getElementById('winner-name-display');
+        winnerNameEl.innerHTML = `<span>${ranked[0].name}</span>`;
+        
+        document.getElementById('winner-score-display').innerText = `${ranked[0].total}점`;
+        document.getElementById('winner-flavor-text').innerText = "“광기와 환락의 가면무도회 끝에 오직 단 한 사람, 완벽한 죄악의 지배자로 군림하였습니다!”";
+
+        const mvpContainer = document.getElementById('mvp-cards-container');
+        mvpContainer.innerHTML = '';
+
+        steps.forEach((step, sIdx) => {
+            let scoresList = players.map(p => ({ name: p.name, score: p.scores[sIdx] }));
+            scoresList.sort((a, b) => b.score - a.score);
+
+            let topPlayerName = "";
+            let topScore = -999999;
+
+            if (scoresList.length > 0) {
+                if (scoresList.length === 1 || scoresList[0].score > scoresList[1].score) {
+                    topPlayerName = scoresList[0].name;
+                    topScore = scoresList[0].score;
+                }
+            }
+
+            if (topPlayerName !== "") {
+                const mvpCard = document.createElement('div');
+                mvpCard.className = 'mvp-card';
+                mvpCard.innerHTML = `
+                    <div>
+                        <div style="font-size:10px; color:var(--accent-color); font-weight:800; margin-bottom:2px;">[${step.awardName}]</div>
+                        <div style="font-size:12px; font-weight:700; color:var(--text-main);">${step.title.split(':')[0]} 1위: <span style="color:var(--accent-color); font-weight:800;">${topPlayerName}</span> (${topScore}점)</div>
+                        <div style="font-size:10px; color:var(--text-sub); margin-top:2px;">${step.flavor}</div>
+                    </div>
+                `;
+                mvpContainer.appendChild(mvpCard);
+            }
+        });
+
+        const list = document.getElementById('ranking-list');
+        list.innerHTML = '';
+        ranked.forEach((p, idx) => {
+            const card = document.createElement('div');
+            card.className = 'ranking-card';
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="color:var(--accent-color); font-weight:800; font-size:14px;">${idx + 1}위</span>
+                        <span style="font-weight:700; font-size:13px;">${p.name}</span>
+                    </div>
+                    <span style="color:var(--accent-color); font-weight:800; font-size:14px;">${p.total}점 <span style="font-size:10px; color:var(--text-sub);">(기본 ${p.rawSum} + 보너스 ${p.bonusSum})</span></span>
+                </div>
+            `;
+            list.appendChild(card);
+        });
+    }
+
+    function resetApp() {
+        document.getElementById('result-screen').classList.add('hidden');
+        document.getElementById('calculator-screen').classList.add('hidden');
+        document.getElementById('setup-screen').classList.remove('hidden');
+        currentStep = 0;
+        renderPlayerCountButtons();
+        renderPlayerConfigInputs();
+    }
+
+    function fullResetApp() {
+        if (confirm("모든 설정과 플레이어 기록이 초기화됩니다. 진행하시겠습니까?")) {
+            playerCount = 4;
+            playerNames = ["참가자 1", "참가자 2", "참가자 3", "참가자 4"];
+            players = [];
+            currentStep = 0;
+            resetApp();
+        }
+    }
+</script>
+
+</body>
+</html>
